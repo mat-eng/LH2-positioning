@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>6DoF Tracking</title>
+  	<meta charset="utf-8">
+  	<script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+		
+  	<style>
+	#myEmbeddedScene 
+	{
+		width:100%;
+		height:100%;
+	}
+  	</style>
+
+  	<style>
+    *
+    {
+		box-sizing: border-box;
+    }
+
+    body 
+    {
+		font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* Style the header */
+    header 
+    {
+		background-color: #e0e0e0;
+		padding: 1px;
+		text-align: center;
+		font-size: 10px;
+		color: black;
+    }
+
+    /* Create two columns/boxes that floats next to each other */
+    nav 
+    {
+		float: left;
+		width: 18%;
+		height: 90vh;//600px; /* only for demonstration, should be removed */
+		background: #f0f0f0 ; /*#ccc;*/
+		padding: 10px;
+    }
+
+    /* Style the list inside the menu */
+    nav ul 
+    {
+		list-style-type: none;
+		padding: 0;
+    }
+
+    article 
+    {
+		float: left;
+		padding: 10px;
+		width: 82%;
+		background-color: white; /*#f1f1f1;*/
+		height: 90vh; /* only for demonstration, should be removed */
+    }
+
+    /* Clear floats after the columns */
+    section:after 
+    {
+		content: "";
+		display: table;
+		clear: both;
+    }
+
+    /* Style the footer */
+    footer 
+    {
+		background-color: black; /*#777;*/
+		padding: 10px;
+		text-align: center;
+		color: black;
+    }
+
+    /* Responsive layout - makes the two columns/boxes stack on top of each other instead of next to each other, on small screens */
+    @media (max-width: 600px) 
+    {
+		nav, article 
+		{
+		width: 100%;
+		height: auto;
+		}
+    }
+	</style>
+</head>
+
+<body>
+	<script type="text/javascript">
+    function save() 
+    {
+	    var a = document.createElement('a');
+	    with (a) {
+	        href='data:text/csv;base64,' + btoa(document.getElementById('DataLog').value);
+	        download='csvfile.csv';
+	    }
+	    document.body.appendChild(a);
+	    a.click();
+	    document.body.removeChild(a);
+    }
+    </script>
+
+	<script type="text/javascript">
+    function erase()
+    {
+    	document.getElementById("DataLog").value = " ";
+    }
+    </script>
+
+	<script>
+	var ws = new WebSocket("ws://192.168.0.8:5678/"),
+		messages = document.createElement('ul');
+	ws.onmessage = function (event) 
+	{
+		console.log(event.data);
+		data = JSON.parse(event.data);
+
+		ico.object3D.position.set(data.x, data.z, data.y);
+		ico.object3D.rotation.set(data.roll, data.yaw, data.pitch);
+
+		cam.object3D.position.set(data.x, data.z, data.y+0.5);
+		cam.object3D.rotation.set(data.roll, data.yaw, data.pitch);
+
+		X.textContent = ' ' + data.x;
+		Y.textContent = ' ' + data.y;
+		Z.textContent = ' ' + data.z;
+		Roll.textContent = ' ' + data.roll;
+		Pitch.textContent = ' ' + data.pitch;
+		Yaw.textContent = ' ' + data.yaw;
+		//DataLog.textContent += (data.x + ';' + data.y  + ';' + data.z + ';'
+		//						+ data.roll + ';' + data.pitch  + ';' + data.yaw + '\n');
+
+		// Slow the UI after ~20s
+		//document.getElementById("DataLog").scrollTop = document.getElementById("DataLog").scrollHeight;
+
+		BL.textContent = ' '+data.bat+'%';
+		mBL.value = data.bat;
+		Temp.textContent = ' ' + data.temp + '°C';
+	};
+    </script>
+
+	<header>
+		<h2><b>2020 Bachelor's degree - 6DoF Tracking - Mathieu Schnegg</b></h2>
+  	</header>
+
+  	<section>
+		<nav>
+			<hr>
+			<label><b>Actual position</b></label>
+			<br>
+			<label>X[m] :</label><label id=X></label>
+			<br>
+			<label>Y[m] :</label><label id=Y></label>
+			<br>
+			<label>Z[m] :</label><label id=Z></label>
+			<br>
+			<label>Roll[°] :</label><label id=Roll></label>
+			<br>
+			<label>Pitch[°] :</label><label id=Pitch></label>
+			<br>
+			<label>Yaw[°] :</label><label id=Yaw></label>
+			<br>
+			<hr>
+			<label>Data log :</label>
+			<br>
+			<textarea id = "DataLog"
+			        rows = "10"
+			        cols = "25"></textarea>
+			<br>
+			<button type="button" onclick="save();alert('File successfully downloaded')">Save log to csv file</button>
+			<button type="button" onclick="erase();alert('Log cleared')">Clear log</button>
+			<br>
+			<hr>
+			<label>Battery level :</label><label id=BL></label> 
+			<br>
+			<meter id="mBL" value="50" min="0" max="100"></meter>
+			<br>
+			<hr>
+			<label>Temperature :</label><label id=Temp></label>     
+			<br>
+			<hr>
+			<button type="button" onclick="ws.close();alert('Connection with server closed\nReload page to restart');">Stop</button>
+			<hr>
+    	</nav>
+
+	    <article>
+			<div id="myEmbeddedScene">
+			<a-scene background="color: #ECECEC" 
+			       embedded  
+			       !stats 
+			       loading-screen="dotsColor: red; backgroundColor: white"
+			       vr-mode-ui="enabled: false">
+			<a-entity id=cam camera look-controls position="0 0 0.5"></a-entity>
+			<a-icosahedron id=ico position="0.2 0 0" rotation="0 0 0" color="#008109" radius="0.02375"></a-icosahedron>
+			<a-entity geometry="primitive:plane;height:1000;width:1000" position="0 -1.5 0" rotation="-90 0 0" material="transparent:true;repeat:5000 5000;metalness:0.6;roughness:0.4;sphericalEnvMap:https://img.gs/bbdkhfbzkk/2048x2048,stretch/http://i.imgur.com/WqlqEkq.jpg;src:https://img.gs/bbdkhfbzkk/stretch/https://i.imgur.com/25P1geh.png"></a-entity>
+			<a-box position="0 0 0"color="black" depth="0.07" height="0.08" width="0.07"></a-box>
+			<a-sky color="white" ></a-sky>
+			</a-scene>
+	    </article>
+	</section>
+</body>
+</html>
